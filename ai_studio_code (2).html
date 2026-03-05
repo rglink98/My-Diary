@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>আমার ডায়েরি - স্মৃতি ও লক</title>
+    <!-- Google Fonts & PDF Library -->
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        :root {
+            --primary-color: #6c5ce7;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --accent-color: #a29bfe;
+        }
+
+        body {
+            font-family: 'Hind Siliguri', sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            min-height: 100vh;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            position: relative;
+            padding-bottom: 80px;
+        }
+
+        /* Lock Screen */
+        #lock-screen {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--primary-color);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .input-field {
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+            margin-bottom: 10px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        /* Header */
+        header {
+            background: var(--primary-color);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        /* Diary Entries */
+        .entry-list {
+            padding: 15px;
+        }
+
+        .entry-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--primary-color);
+            transition: 0.3s;
+        }
+
+        .entry-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .entry-date { font-size: 0.8rem; color: #666; margin-bottom: 10px; }
+        .entry-content { margin-top: 10px; line-height: 1.6; color: #333; }
+        .entry-img { width: 100%; border-radius: 8px; margin-top: 10px; border: 1px solid #eee; }
+
+        /* Controls */
+        .fab {
+            position: fixed;
+            bottom: 25px;
+            right: 25px;
+            background: var(--primary-color);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 30px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(108, 92, 231, 0.4);
+            border: none;
+        }
+
+        /* Form Overlay */
+        #entry-form {
+            display: none;
+            padding: 20px;
+            background: white;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 200;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            background: var(--primary-color);
+            color: white;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+
+        .search-bar {
+            width: 90%;
+            padding: 12px;
+            margin: 15px auto;
+            display: block;
+            border-radius: 25px;
+            border: 1px solid #ddd;
+            outline: none;
+        }
+
+        .settings-bar {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        select, input[type="number"] {
+            padding: 5px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+
+<!-- লক স্ক্রিন -->
+<div id="lock-screen">
+    <h2>🔐 ডায়েরি লক</h2>
+    <p>পাসওয়ার্ড দিন (ডিফল্ট: 1234)</p>
+    <input type="password" id="pass-input" class="input-field" style="width: 200px; text-align: center;" placeholder="পাসওয়ার্ড লিখুন">
+    <button class="btn" onclick="checkPassword()" style="background: white; color: var(--primary-color);">খুলুন</button>
+</div>
+
+<div class="app-container">
+    <header>
+        <h1>স্মৃতি ডায়েরি</h1>
+    </header>
+
+    <input type="text" class="search-bar" id="search" placeholder="শিরোনাম বা লেখা দিয়ে খুঁজুন..." onkeyup="renderEntries()">
+
+    <div class="entry-list" id="entry-list">
+        <!-- এন্ট্রিগুলো এখানে লোড হবে -->
+    </div>
+
+    <!-- এন্ট্রি ফর্ম -->
+    <div id="entry-form">
+        <h2 style="color: var(--primary-color);">নতুন স্মৃতি যোগ করুন</h2>
+        
+        <!-- টাইটেল ইনপুট -->
+        <input type="text" id="note-title" class="input-field" placeholder="স্মৃতির শিরোনাম (Title)...">
+
+        <div class="settings-bar">
+            <span>ফন্ট:</span>
+            <select id="font-family" onchange="updateStyle()">
+                <option value="'Hind Siliguri'">ডিফল্ট</option>
+                <option value="serif">সেরিফ</option>
+                <option value="cursive">স্টাইলিশ</option>
+            </select>
+            <span>সাইজ:</span>
+            <input type="number" id="font-size" value="16" min="12" max="30" onchange="updateStyle()">
+        </div>
+
+        <textarea id="note-text" style="width: 100%; height: 250px; padding: 15px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-family: 'Hind Siliguri';" placeholder="আপনার মনের কথা লিখুন..."></textarea>
+        
+        <div style="margin-top: 15px;">
+            <label>ছবি যুক্ত করুন:</label><br>
+            <input type="file" id="image-input" accept="image/*" style="margin-top: 5px;">
+        </div>
+
+        <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button class="btn" style="flex: 1;" onclick="saveEntry()">সংরক্ষণ করুন</button>
+            <button class="btn" style="background: #e74c3c; flex: 1;" onclick="toggleForm()">বাতিল</button>
+        </div>
+    </div>
+
+    <button class="fab" onclick="toggleForm()">+</button>
+</div>
+
+<script>
+    let entries = JSON.parse(localStorage.getItem('myDiaryEntries')) || [];
+    const correctPassword = "1234"; // পাসওয়ার্ড পরিবর্তন করতে পারেন
+
+    function checkPassword() {
+        const input = document.getElementById('pass-input').value;
+        if(input === correctPassword) {
+            document.getElementById('lock-screen').style.display = 'none';
+        } else {
+            alert("ভুল পাসওয়ার্ড! সঠিক পাসওয়ার্ড দিন।");
+        }
+    }
+
+    function toggleForm() {
+        const form = document.getElementById('entry-form');
+        form.style.display = form.style.display === 'block' ? 'none' : 'block';
+        if(form.style.display === 'block') {
+            document.getElementById('note-title').focus();
+        }
+    }
+
+    function updateStyle() {
+        const text = document.getElementById('note-text');
+        text.style.fontFamily = document.getElementById('font-family').value;
+        text.style.fontSize = document.getElementById('font-size').value + 'px';
+    }
+
+    function saveEntry() {
+        const title = document.getElementById('note-title').value;
+        const text = document.getElementById('note-text').value;
+        const fileInput = document.getElementById('image-input');
+        const file = fileInput.files[0];
+        const font = document.getElementById('font-family').value;
+        const size = document.getElementById('font-size').value;
+
+        if(!title || !text) return alert("শিরোনাম এবং বর্ণনা উভয়ই লিখুন!");
+
+        const save = (imageSrc) => {
+            const entry = {
+                id: Date.now(),
+                date: new Date().toLocaleString('bn-BD', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }),
+                title: title,
+                content: text,
+                image: imageSrc,
+                font: font,
+                size: size
+            };
+            entries.unshift(entry);
+            localStorage.setItem('myDiaryEntries', JSON.stringify(entries));
+            renderEntries();
+            toggleForm();
+            resetForm();
+        };
+
+        if(file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                save(e.target.result);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            save(null);
+        }
+    }
+
+    function resetForm() {
+        document.getElementById('note-title').value = '';
+        document.getElementById('note-text').value = '';
+        document.getElementById('image-input').value = '';
+    }
+
+    function deleteEntry(id) {
+        if(confirm("আপনি কি এই স্মৃতিটি মুছে ফেলতে চান?")) {
+            entries = entries.filter(e => e.id !== id);
+            localStorage.setItem('myDiaryEntries', JSON.stringify(entries));
+            renderEntries();
+        }
+    }
+
+    function downloadPDF(title, content, date) {
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        doc.setFontSize(16);
+        doc.text(title, 10, 20);
+        doc.setFontSize(10);
+        doc.text(date, 10, 30);
+        doc.setFontSize(12);
+        doc.text(content, 10, 45);
+        doc.save(`${title}.pdf`);
+    }
+
+    function renderEntries() {
+        const list = document.getElementById('entry-list');
+        const searchTerm = document.getElementById('search').value.toLowerCase();
+        list.innerHTML = '';
+
+        const filteredEntries = entries.filter(e => 
+            e.title.toLowerCase().includes(searchTerm) || 
+            e.content.toLowerCase().includes(searchTerm)
+        );
+
+        if(filteredEntries.length === 0) {
+            list.innerHTML = '<p style="text-align:center; color:#999; margin-top:20px;">কোনো স্মৃতি পাওয়া যায়নি।</p>';
+            return;
+        }
+
+        filteredEntries.forEach(entry => {
+            const card = document.createElement('div');
+            card.className = 'entry-card';
+            card.innerHTML = `
+                <div class="entry-title">${entry.title}</div>
+                <div class="entry-date">📅 ${entry.date}</div>
+                <div class="entry-content" style="font-family: ${entry.font}; font-size: ${entry.size}px;">
+                    ${entry.content}
+                </div>
+                ${entry.image ? `<img src="${entry.image}" class="entry-img">` : ''}
+                <div style="margin-top:15px; display: flex; gap: 10px;">
+                    <button class="btn" style="background: #27ae60; padding: 5px 12px; font-size: 12px;" onclick="downloadPDF('${entry.title}', '${entry.content}', '${entry.date}')">PDF</button>
+                    <button class="btn" style="background: #e74c3c; padding: 5px 12px; font-size: 12px;" onclick="deleteEntry(${entry.id})">মুছুন</button>
+                </div>
+            `;
+            list.appendChild(card);
+        });
+    }
+
+    // শুরুতে এন্ট্রিগুলো লোড করা
+    renderEntries();
+</script>
+
+</body>
+</html>
